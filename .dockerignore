@@ -1,0 +1,17 @@
+node_modules
+.next
+.git
+.github
+.env
+.env.*
+!.env.example
+npm-debug.log*
+Dockerfile
+docker-compose.yml
+DEPLOYMENT.md
+README.md
+public/uploads
+private
+coverage
+*.tsbuildinfo
+.DS_Store

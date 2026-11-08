@@ -1,0 +1,65 @@
+# ---------------------------------------------------------------------------
+# Mukti Portfolio + CMS — one-command deployment
+#
+#   cp .env.example .env      # then edit .env
+#   docker compose up -d --build
+#   docker compose logs -f app
+#
+# Site:  http://localhost:3000
+# Admin: http://localhost:3000/admin/login
+# ---------------------------------------------------------------------------
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mukti}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-mukti}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mukti} -d ${POSTGRES_DB:-mukti}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # Applies prisma/migrations once, before the app starts.
+  migrate:
+    build: .
+    restart: "no"
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-mukti}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-mukti}?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["npm", "run", "db:deploy"]
+
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-mukti}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-mukti}?schema=public
+      UPLOAD_DIR: /app/public/uploads
+      PRIVATE_UPLOAD_DIR: /app/private
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    volumes:
+      # Persistent storage for uploaded images + private files (CV).
+      - uploads:/app/public/uploads
+      - private:/app/private
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  db-data:
+  uploads:
+  private:

@@ -1,0 +1,293 @@
+// Mukti Portfolio + CMS — Prisma schema (PostgreSQL)
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum ProjectStatus {
+  DRAFT
+  PUBLISHED
+  UNPUBLISHED
+}
+
+enum InquiryType {
+  JOB_OR_INTERNSHIP
+  FREELANCE_PROJECT
+  COLLABORATION
+  OTHER
+}
+
+enum ExperienceKind {
+  EDUCATION
+  INTERNSHIP
+  EMPLOYMENT
+  CERTIFICATION
+  TRAINING
+  ACADEMIC_PROJECT
+  ACHIEVEMENT
+}
+
+enum MediaCategory {
+  PROFILE
+  PROJECT_THUMBNAIL
+  PROJECT_SCREENSHOT
+  CV
+  SOCIAL
+  MISC
+}
+
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
+
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Media library
+// ---------------------------------------------------------------------------
+
+model Media {
+  id           String       @id @default(cuid())
+  storageKey   String
+  url          String
+  originalName String?
+  mimeType     String
+  size         Int
+  category     MediaCategory @default(MISC)
+  isPublic     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+
+  profileImages Profile[]            @relation("ProfileImage")
+  cvFiles       Profile[]            @relation("ProfileCV")
+  projectThumbs Project[]            @relation("ProjectThumbnail")
+  screenshots   ProjectScreenshot[]  @relation("ScreenshotMedia")
+  socialImages  SiteSettings[]       @relation("SiteSocialImage")
+}
+
+// ---------------------------------------------------------------------------
+// Profile (single owner record)
+// ---------------------------------------------------------------------------
+
+model Profile {
+  id              String   @id @default(cuid())
+  name            String   @default("Mukti")
+  title           String   @default("Software Engineer | Full-Stack Developer")
+  eyebrow         String   @default("SOFTWARE ENGINEER & DEVELOPER")
+  heroHeadline    String   @default("Building Digital Products That Solve Real Problems.")
+  heroDescription String   @default("I develop thoughtful web and mobile applications by combining clean engineering, practical architecture, and user-centered design.")
+  bio             String?
+  interests       String?
+  approach        String?
+  learningGoals   String?
+  ambitions       String?
+  education       String?
+  publicEmail     String?
+  githubUrl       String?
+  linkedinUrl     String?
+  otherLinks      Json?
+  isAvailable     Boolean  @default(true)
+  aboutVisible    Boolean  @default(true)
+
+  profileImageId String?
+  profileImage   Media?   @relation("ProfileImage", fields: [profileImageId], references: [id], onDelete: SetNull)
+  cvFileId       String?
+  cvFile         Media?   @relation("ProfileCV", fields: [cvFileId], references: [id], onDelete: SetNull)
+  cvVisible      Boolean  @default(false)
+
+  updatedAt      DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Projects
+// ---------------------------------------------------------------------------
+
+model Project {
+  id                 String        @id @default(cuid())
+  title              String
+  slug               String        @unique
+  shortDescription   String?
+  description        String?
+  category           String?
+  role               String?
+  technologies       String[]
+  features           String[]
+  overview           String?
+  problem            String?
+  targetUsers        String?
+  goals              String?
+  architecture       String?
+  challenges         String?
+  testingNotes       String?
+  futureImprovements String?
+  githubUrl          String?
+  liveUrl            String?
+  status             ProjectStatus @default(DRAFT)
+  isFeatured         Boolean       @default(false)
+  displayOrder       Int           @default(0)
+  publishedAt        DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  thumbnailMediaId String?
+  thumbnail       Media?              @relation("ProjectThumbnail", fields: [thumbnailMediaId], references: [id], onDelete: SetNull)
+  screenshots     ProjectScreenshot[]
+
+  @@index([status, displayOrder])
+  @@index([slug])
+}
+
+model ProjectScreenshot {
+  id           String  @id @default(cuid())
+  projectId    String
+  project      Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  mediaId      String
+  media        Media   @relation("ScreenshotMedia", fields: [mediaId], references: [id], onDelete: Cascade)
+  displayOrder Int     @default(0)
+  caption      String?
+
+  @@index([projectId])
+}
+
+// ---------------------------------------------------------------------------
+// Skills
+// ---------------------------------------------------------------------------
+
+model Skill {
+  id           String   @id @default(cuid())
+  name         String
+  category     String
+  icon         String   @default("Code2")
+  displayOrder Int      @default(0)
+  published    Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  /// Optional external link (docs, certificate, repository, …).
+  url      String?
+  /// Optional label for the public link button.
+  urlLabel String?
+}
+
+// ---------------------------------------------------------------------------
+// Experience / Education (shared table, differentiated by `kind`)
+// ---------------------------------------------------------------------------
+
+model Experience {
+  id           String          @id @default(cuid())
+  kind         ExperienceKind
+  title        String
+  organization String?
+  description  String?
+  startDate    DateTime?
+  endDate      DateTime?
+  current      Boolean         @default(false)
+  displayOrder Int             @default(0)
+  published    Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  /// Optional external link (certificate verification, portfolio, …).
+  url      String?
+  /// Optional label for the public link button.
+  urlLabel String?
+
+  @@index([kind, displayOrder])
+}
+
+// ---------------------------------------------------------------------------
+// Freelance services
+// ---------------------------------------------------------------------------
+
+model Service {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  icon         String   @default("Code")
+  displayOrder Int      @default(0)
+  published    Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  /// Optional external link (service page, booking page, …).
+  url      String?
+  /// Optional label for the public link button.
+  urlLabel String?
+}
+
+// ---------------------------------------------------------------------------
+// Statistics (admin‑managed cards shown on the home page)
+// ---------------------------------------------------------------------------
+
+model Statistic {
+  id            String   @id @default(cuid())
+  value         String   // e.g. "10+"
+  title         String   // e.g. "PROJECTS BUILT"
+  description   String?  // optional longer copy
+  accentColor   String   @default("blue") // matches themeAccent palette
+  icon          String   @default("TrendingUp")
+  displayOrder  Int      @default(0)
+  published     Boolean  @default(true)
+  isVisible     Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([published, isVisible, displayOrder])
+}
+
+// ---------------------------------------------------------------------------
+// Contact messages (admin inbox)
+// ---------------------------------------------------------------------------
+
+model ContactMessage {
+  id          String      @id @default(cuid())
+  name        String
+  email       String
+  inquiryType InquiryType
+  subject     String
+  message     String
+  isRead      Boolean     @default(false)
+  isArchived  Boolean     @default(false)
+  adminReply  String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([isRead, isArchived])
+  @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Site settings (single record)
+// ---------------------------------------------------------------------------
+
+model SiteSettings {
+  id            String   @id @default(cuid())
+  siteTitle     String   @default("Mukti — Software Engineer")
+  metaDescription String?
+  favicon       String?
+  footerContent String?
+  socialLinks   Json?
+  contactEmail String?
+  themeAccent   String   @default("blue")
+  cvVisible     Boolean  @default(false)
+  updatedAt     DateTime @updatedAt
+
+  socialImageId String?
+  socialImage   Media?   @relation("SiteSocialImage", fields: [socialImageId], references: [id], onDelete: SetNull)
+}
