@@ -2,8 +2,6 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
 import { readUpload } from "@/lib/storage";
 
-export const dynamic = "force-dynamic";
-
 /**
  * Serve a stored file with access control.
  * Allowed when: the admin is signed in, the file is public, OR the file is a

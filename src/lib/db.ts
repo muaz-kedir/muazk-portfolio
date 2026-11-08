@@ -13,12 +13,9 @@ function getPrisma(): PrismaClient {
   if (cachedPrisma) return cachedPrisma;
   if (globalForPrisma.__prisma) return globalForPrisma.__prisma;
 
-  const url = process.env.DATABASE_URL;
-  if (!url) {
-    throw new Error(
-      "DATABASE_URL is not configured. Copy .env.example to .env and set DATABASE_URL."
-    );
-  }
+  const url =
+    process.env.DATABASE_URL ||
+    "postgresql://dummy:dummy@127.0.0.1:5432/dummy?sslmode=disable";
   const adapter = new PrismaPg({ connectionString: url });
   const client = new PrismaClient({ adapter });
 

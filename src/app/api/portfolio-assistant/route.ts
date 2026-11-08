@@ -13,8 +13,6 @@ import {
 } from "@/lib/portfolio-assistant";
 import { envInt, getClientIp, rateLimit } from "@/lib/rate-limit";
 
-export const dynamic = "force-dynamic";
-
 const MAX_BODY_BYTES = 20_000;
 const MAX_MESSAGES = 12;
 const messagesSchema = z

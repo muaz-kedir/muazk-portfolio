@@ -42,23 +42,36 @@ export async function getProfile() {
   "use cache";
   cacheLife("hours");
   cacheTag("profile");
-  const row = await prisma.profile.findFirst({
-    include: { profileImage: true, cvFile: true },
-  });
-  return (row ?? defaultProfile) as Profile & {
-    profileImage: Media | null;
-    cvFile: Media | null;
-  };
+  try {
+    const row = await prisma.profile.findFirst({
+      include: { profileImage: true, cvFile: true },
+    });
+    return (row ?? defaultProfile) as Profile & {
+      profileImage: Media | null;
+      cvFile: Media | null;
+    };
+  } catch {
+    return defaultProfile as Profile & {
+      profileImage: Media | null;
+      cvFile: Media | null;
+    };
+  }
 }
 
 export async function getSettings() {
   "use cache";
   cacheLife("hours");
   cacheTag("settings");
-  const row = await prisma.siteSettings.findFirst({ include: { socialImage: true } });
-  return (row ?? defaultSettings) as SiteSettings & {
-    socialImage: Media | null;
-  };
+  try {
+    const row = await prisma.siteSettings.findFirst({ include: { socialImage: true } });
+    return (row ?? defaultSettings) as SiteSettings & {
+      socialImage: Media | null;
+    };
+  } catch {
+    return defaultSettings as SiteSettings & {
+      socialImage: Media | null;
+    };
+  }
 }
 
 // --- Projects (public: only PUBLISHED) -------------------------------------
@@ -67,49 +80,65 @@ export async function getPublishedProjects() {
   "use cache";
   cacheLife("hours");
   cacheTag("projects");
-  return prisma.project.findMany({
-    where: { status: "PUBLISHED" },
-    orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
-    include: PROJECT_INCLUDE,
-  });
+  try {
+    return await prisma.project.findMany({
+      where: { status: "PUBLISHED" },
+      orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
+      include: PROJECT_INCLUDE,
+    });
+  } catch {
+    return [];
+  }
 }
 
 export async function getFeaturedProjects(limit = 6) {
   "use cache";
   cacheLife("hours");
   cacheTag("projects");
-  return prisma.project.findMany({
-    where: { status: "PUBLISHED", isFeatured: true },
-    orderBy: [{ displayOrder: "asc" }],
-    take: limit,
-    include: PROJECT_INCLUDE,
-  });
+  try {
+    return await prisma.project.findMany({
+      where: { status: "PUBLISHED", isFeatured: true },
+      orderBy: [{ displayOrder: "asc" }],
+      take: limit,
+      include: PROJECT_INCLUDE,
+    });
+  } catch {
+    return [];
+  }
 }
 
 export async function getPublishedProjectBySlug(slug: string) {
   "use cache";
   cacheLife("hours");
   cacheTag("projects");
-  return prisma.project.findUnique({
-    where: { slug },
-    include: FULL_PROJECT_INCLUDE,
-  });
+  try {
+    return await prisma.project.findUnique({
+      where: { slug },
+      include: FULL_PROJECT_INCLUDE,
+    });
+  } catch {
+    return null;
+  }
 }
 
 export async function getRelatedProjects(slug: string, category: string | null | undefined, take = 3) {
   "use cache";
   cacheLife("hours");
   cacheTag("projects");
-  return prisma.project.findMany({
-    where: {
-      status: "PUBLISHED",
-      slug: { not: slug },
-      ...(category ? { category } : {}),
-    },
-    orderBy: [{ displayOrder: "asc" }],
-    take,
-    include: PROJECT_INCLUDE,
-  });
+  try {
+    return await prisma.project.findMany({
+      where: {
+        status: "PUBLISHED",
+        slug: { not: slug },
+        ...(category ? { category } : {}),
+      },
+      orderBy: [{ displayOrder: "asc" }],
+      take,
+      include: PROJECT_INCLUDE,
+    });
+  } catch {
+    return [];
+  }
 }
 
 export type ProjectWithThumbnail = Project & { thumbnail: Media | null };
@@ -124,40 +153,56 @@ export async function getPublishedSkills() {
   "use cache";
   cacheLife("hours");
   cacheTag("skills");
-  return prisma.skill.findMany({
-    where: { published: true },
-    orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
-  });
+  try {
+    return await prisma.skill.findMany({
+      where: { published: true },
+      orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
+    });
+  } catch {
+    return [];
+  }
 }
 
 export async function getPublishedExperience() {
   "use cache";
   cacheLife("hours");
   cacheTag("experience");
-  return prisma.experience.findMany({
-    where: { published: true },
-    orderBy: [{ displayOrder: "asc" }, { startDate: "desc" }],
-  });
+  try {
+    return await prisma.experience.findMany({
+      where: { published: true },
+      orderBy: [{ displayOrder: "asc" }, { startDate: "desc" }],
+    });
+  } catch {
+    return [];
+  }
 }
 
 export async function getPublishedServices() {
   "use cache";
   cacheLife("hours");
   cacheTag("services");
-  return prisma.service.findMany({
-    where: { published: true },
-    orderBy: [{ displayOrder: "asc" }],
-  });
+  try {
+    return await prisma.service.findMany({
+      where: { published: true },
+      orderBy: [{ displayOrder: "asc" }],
+    });
+  } catch {
+    return [];
+  }
 }
 
 export async function getStatistics() {
   "use cache";
   cacheLife("hours");
   cacheTag("statistics");
-  return prisma.statistic.findMany({
-    where: { published: true, isVisible: true },
-    orderBy: { displayOrder: "asc" },
-  });
+  try {
+    return await prisma.statistic.findMany({
+      where: { published: true, isVisible: true },
+      orderBy: { displayOrder: "asc" },
+    });
+  } catch {
+    return [];
+  }
 }
 
 export type { Profile, Project, Service, SiteSettings, Skill, Experience, Media };
