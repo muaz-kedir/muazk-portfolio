@@ -125,7 +125,7 @@ function diskPath(storageKey: string): string {
 }
 
 function isPublicUploadPath(storageKey: string): boolean {
-  const pathFromUploadDir = relative(resolve(UPLOAD_DIR), diskPath(storageKey));
+  const pathFromUploadDir = relative(resolve(/*turbopackIgnore: true*/ UPLOAD_DIR), diskPath(storageKey));
   return (
     pathFromUploadDir !== "" &&
     pathFromUploadDir !== ".." &&
